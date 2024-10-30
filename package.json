@@ -1,0 +1,21 @@
+{
+  "name": "export",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts --directory ../content/articles --targetDomain http://localhost:2368",
+    "clean": "bun run clean.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@tryghost/admin-api": "^1.13.12",
+    "gray-matter": "^4.0.3",
+    "slugify": "^1.6.6",
+    "toml": "^3.0.0"
+  }
+}
