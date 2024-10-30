@@ -39,9 +39,12 @@ class GhostExporter {
       i++;
     }
 
-    result.data.users = builder.authors;
-
     console.log(`${i} articles intégrés pour import`);
+
+    result.data.users = builder.authors;
+    result.data.posts_authors = builder.postAuthors;
+    result.data.tags = builder.tags;
+    result.data.posts_tags = builder.postsTags;
 
     return result;
   }

@@ -3,8 +3,13 @@ import slugify from "slugify";
 class GhostBuilder {
   static postId = 1;
   static userId = 1;
+  static tagId = 1;
 
   authors: User[] = [];
+  postAuthors: PostAuthor[] = [];
+
+  tags: Tag[] = [];
+  postsTags: PostTag[] = [];
 
   initExport(): SiteExport {
     return {
@@ -15,6 +20,7 @@ class GhostBuilder {
       data: {
         posts: [],
         posts_tags: [],
+        posts_authors: [],
         tags: [],
         users: [],
       },
@@ -45,6 +51,7 @@ class GhostBuilder {
     filepath: string
   ): Post {
     const author = this.findOrCreateAuthor(metadata.author);
+    const tags = metadata.tags.map((tagName) => this.findOrCreateTag(tagName));
 
     const post: Post = {
       id: GhostBuilder.postId++,
@@ -60,6 +67,18 @@ class GhostBuilder {
       author_id: author.id,
       created_by: author.id,
     };
+
+    this.postAuthors.push({
+      author_id: author.id,
+      post_id: post.id,
+    });
+
+    tags.forEach((t) =>
+      this.postsTags.push({
+        post_id: post.id,
+        tag_id: t.id,
+      })
+    );
 
     return post;
   }
@@ -80,6 +99,23 @@ class GhostBuilder {
     }
 
     return author;
+  }
+
+  findOrCreateTag(name: string): Tag {
+    let tag = this.tags.find((t) => t.name === name);
+
+    if (tag === undefined) {
+      const id = GhostBuilder.tagId++;
+
+      tag = {
+        id,
+        name,
+      };
+
+      this.tags.push(tag);
+    }
+
+    return tag;
   }
 
   buildSlug(filepath: string): string {

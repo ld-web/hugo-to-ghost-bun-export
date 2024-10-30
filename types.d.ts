@@ -31,6 +31,21 @@ interface User {
   email: string;
 }
 
+interface Tag {
+  id: number;
+  name: string;
+}
+
+interface PostAuthor {
+  post_id: number;
+  author_id: number;
+}
+
+interface PostTag {
+  tag_id: number;
+  post_id: number;
+}
+
 interface ExportMeta {
   exported_on: number;
   version: string;
@@ -38,9 +53,10 @@ interface ExportMeta {
 
 interface ExportData {
   posts: Post[];
-  tags: [];
+  tags: Tag[];
   users: User[];
-  posts_tags: [];
+  posts_tags: PostTag[];
+  posts_authors: PostAuthor[];
   roles_users?: [];
 }
 
