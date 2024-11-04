@@ -53,7 +53,7 @@ class GhostExporter {
 
   private migratePostImages(imgDir: string, content: string): string {
     // Markdown Image : ![Text](name.png Text)
-    const mdImageRegex = /(!\[.*\]\()(.+\.\w+)( .*\))/g;
+    const mdImageRegex = /(!\[.*\]\()(.+\.\w+)( .*\)|\))/g;
 
     const targetImgDirSlugified = `content/images/${imgDir.toLocaleLowerCase()}`
       .split("/")
