@@ -32,7 +32,8 @@ class GhostExporter {
           .toLocaleLowerCase();
       }
 
-      const newContent = this.migratePostImages(path.dirname(file), content);
+      let newContent = this.migratePostImages(path.dirname(file), content);
+      newContent = this.migrateYoutubeShortcodes(newContent);
       const mobiledoc = builder.buildMobileDoc(newContent);
       const post = builder.buildPost(metadata, mobiledoc, file);
 
@@ -69,6 +70,20 @@ class GhostExporter {
         `${match[1]}${
           this.targetDomain
         }/${targetImgDirSlugified}/${match[2].toLocaleLowerCase()}${match[3]}`
+      );
+    }
+
+    return content;
+  }
+
+  private migrateYoutubeShortcodes(content: string): string {
+    // Youtube shortcode : {{< youtube WbbDQ1f1Yms >}}
+    const ytShortcodeRegex = /\{\{< youtube (.+) >\}\}/g;
+
+    for (const match of content.matchAll(ytShortcodeRegex)) {
+      content = content.replace(
+        match[0],
+        `<iframe width="560" height="315" src="https://www.youtube.com/embed/${match[1]}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`
       );
     }
 
