@@ -2,6 +2,7 @@ import { Glob } from "bun";
 import MdParser from "./MdParser";
 import path from "path";
 import GhostBuilder from "./GhostBuilder";
+import slugify from "slugify";
 
 const mdGlob = new Glob("**/*.md");
 
@@ -27,7 +28,7 @@ class GhostExporter {
 
       if (metadata.image) {
         metadata.image = metadata.image
-          .replace("https://nostick.fr/articles", `${this.targetDomain}`)
+          .replace("https://nostick.fr/articles", this.targetDomain)
           .toLocaleLowerCase();
       }
 
@@ -53,9 +54,10 @@ class GhostExporter {
     // Markdown Image : ![Text](name.png Text)
     const mdImageRegex = /(!\[.*\]\()(.+\.\w+)( .*\))/g;
 
-    const targetImgDirUrlEncoded = encodeURI(
-      `content/images/${imgDir.toLocaleLowerCase()}`
-    );
+    const targetImgDirSlugified = `content/images/${imgDir.toLocaleLowerCase()}`
+      .split("/")
+      .map((s) => slugify(s, { replacement: "-", lower: true }))
+      .join("/");
 
     for (const match of content.matchAll(mdImageRegex)) {
       // Capture :
@@ -66,7 +68,7 @@ class GhostExporter {
         match[0],
         `${match[1]}${
           this.targetDomain
-        }/${targetImgDirUrlEncoded}/${match[2].toLocaleLowerCase()}${match[3]}`
+        }/${targetImgDirSlugified}/${match[2].toLocaleLowerCase()}${match[3]}`
       );
     }
 

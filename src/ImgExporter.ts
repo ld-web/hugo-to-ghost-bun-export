@@ -1,4 +1,5 @@
 import { Glob } from "bun";
+import slugify from "slugify";
 
 class ImgExporter {
   private source: string;
@@ -20,7 +21,16 @@ class ImgExporter {
 
       for await (const file of imgGlob.scan(this.source)) {
         const img = Bun.file(`${this.source}/${file}`);
-        await Bun.write(`${this.destination}/${file}`.toLocaleLowerCase(), img);
+
+        const targetImgSlugified = file
+          .split("/")
+          .map((s) => slugify(s, { replacement: "-", lower: true }))
+          .join("/");
+
+        await Bun.write(
+          `${this.destination}/${targetImgSlugified}`.toLocaleLowerCase(),
+          img
+        );
         total++;
       }
     }
