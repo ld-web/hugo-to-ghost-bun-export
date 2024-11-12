@@ -9,20 +9,20 @@ const DIST_DIR = "dist";
 await fs.rm(DIST_DIR, { recursive: true });
 
 // Parse args
-const { directory, targetDomain } = CliParser.parse();
+const { directory, targetDomain, limit, perPage } = CliParser.parse();
 
 // Process md files
-const postsExporter = new GhostExporter(directory, targetDomain);
-const result = await postsExporter.createExportObject();
+const postsExporter = new GhostExporter(directory, DIST_DIR, targetDomain);
+await postsExporter.export({ limit, perPage });
 
-const bytes = await Bun.write(
-  `${DIST_DIR}/output.json`,
-  JSON.stringify(result)
-);
-console.log(`${bytes} bytes written`);
+// const bytes = await Bun.write(
+//   `${DIST_DIR}/output.json`,
+//   JSON.stringify(result)
+// );
+// console.log(`${bytes} bytes written`);
 
 // Process images
-const imagesExporter = new ImgExporter(directory, DIST_DIR);
-await imagesExporter.run();
+// const imagesExporter = new ImgExporter(directory, DIST_DIR);
+// await imagesExporter.run();
 
 console.log("Done.");

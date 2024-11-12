@@ -64,3 +64,8 @@ interface SiteExport {
   meta: ExportMeta;
   data: ExportData;
 }
+
+interface ExportOptions {
+  limit: number | undefined;
+  perPage: number | undefined;
+}

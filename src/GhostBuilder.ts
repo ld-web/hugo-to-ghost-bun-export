@@ -5,10 +5,10 @@ class GhostBuilder {
   static userId = 1;
   static tagId = 1;
 
-  authors: User[] = [];
+  static authors: User[] = [];
   postAuthors: PostAuthor[] = [];
 
-  tags: Tag[] = [];
+  static tags: Tag[] = [];
   postsTags: PostTag[] = [];
 
   initExport(): SiteExport {
@@ -73,10 +73,10 @@ class GhostBuilder {
       post_id: post.id,
     });
 
-    tags.forEach((t) =>
+    tags.forEach((tag) =>
       this.postsTags.push({
         post_id: post.id,
-        tag_id: t.id,
+        tag_id: tag.id,
       })
     );
 
@@ -84,7 +84,7 @@ class GhostBuilder {
   }
 
   findOrCreateAuthor(name: string): User {
-    let author = this.authors.find((u) => u.name === name);
+    let author = GhostBuilder.authors.find((u) => u.name === name);
 
     if (author === undefined) {
       const id = GhostBuilder.userId++;
@@ -95,14 +95,14 @@ class GhostBuilder {
         email: `email${id}@nostick.fr`,
       };
 
-      this.authors.push(author);
+      GhostBuilder.authors.push(author);
     }
 
     return author;
   }
 
   findOrCreateTag(name: string): Tag {
-    let tag = this.tags.find((t) => t.name === name);
+    let tag = GhostBuilder.tags.find((t) => t.name === name);
 
     if (tag === undefined) {
       const id = GhostBuilder.tagId++;
@@ -112,7 +112,7 @@ class GhostBuilder {
         name,
       };
 
-      this.tags.push(tag);
+      GhostBuilder.tags.push(tag);
     }
 
     return tag;

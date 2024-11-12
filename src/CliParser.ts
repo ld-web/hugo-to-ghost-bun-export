@@ -12,6 +12,12 @@ class CliParser {
         targetDomain: {
           type: "string",
         },
+        limit: {
+          type: "string",
+        },
+        perPage: {
+          type: "string",
+        },
       },
       strict: true,
       allowPositionals: true,
@@ -30,6 +36,8 @@ class CliParser {
     return {
       directory: values.directory as string,
       targetDomain: values.targetDomain as string,
+      limit: values.limit ? Number.parseInt(values.limit) : undefined,
+      perPage: values.perPage ? Number.parseInt(values.perPage) : undefined,
     };
   }
 }

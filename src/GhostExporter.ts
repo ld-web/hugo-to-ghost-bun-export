@@ -4,58 +4,134 @@ import path from "path";
 import GhostBuilder from "./GhostBuilder";
 import slugify from "slugify";
 
-const mdGlob = new Glob("**/*.md");
-
 class GhostExporter {
   private directory: string;
+  private targetDirectory: string;
   private targetDomain: string;
+  private mdFiles: string[] = [];
 
-  constructor(directory: string, targetDomain: string) {
+  constructor(
+    directory: string,
+    targetDirectory: string,
+    targetDomain: string
+  ) {
     this.directory = directory;
+    this.targetDirectory = targetDirectory;
     this.targetDomain = targetDomain;
   }
 
-  async createExportObject(): Promise<SiteExport> {
-    const builder = new GhostBuilder();
-    const result = builder.initExport();
+  async export({ limit, perPage }: ExportOptions): Promise<void> {
+    await this.exploreAndRegisterMdFiles(limit);
+    const { itemsPerPage, totalPages } = this.buildPagination(perPage);
 
-    let i = 0;
+    for (let page = 1; page <= totalPages; page++) {
+      const builder = new GhostBuilder();
+      const result = builder.initExport();
 
-    for await (const file of mdGlob.scan(this.directory)) {
-      const filePath = `${this.directory}/${file}`;
+      for (
+        let itemIndex = (page - 1) * itemsPerPage;
+        itemIndex < page * itemsPerPage;
+        itemIndex++
+      ) {
+        const file = this.mdFiles[itemIndex];
+        const filePath = `${this.directory}/${file}`;
+        const { data: metadata, content } = MdParser.parse(filePath);
 
-      const { data: metadata, content } = MdParser.parse(filePath);
+        if (metadata.image) {
+          await this.migrateFeaturedImage(page, metadata);
+        }
 
-      if (metadata.image) {
-        metadata.image = metadata.image
-          .replace("https://nostick.fr/articles", this.targetDomain)
-          .toLocaleLowerCase();
+        let newContent = await this.migratePostImages(
+          page,
+          path.dirname(file),
+          content
+        );
+        newContent = this.migrateYoutubeShortcodes(newContent);
+        const mobiledoc = builder.buildMobileDoc(newContent);
+        const post = builder.buildPost(metadata, mobiledoc, file);
+
+        result.data.posts.push(post);
       }
 
-      let newContent = this.migratePostImages(path.dirname(file), content);
-      newContent = this.migrateYoutubeShortcodes(newContent);
-      const mobiledoc = builder.buildMobileDoc(newContent);
-      const post = builder.buildPost(metadata, mobiledoc, file);
+      result.data.users = GhostBuilder.authors;
+      result.data.posts_authors = builder.postAuthors;
+      result.data.tags = GhostBuilder.tags;
+      result.data.posts_tags = builder.postsTags;
 
-      result.data.posts.push(post);
-      i++;
+      const bytes = await Bun.write(
+        `${this.targetDirectory}/${page}/output.json`,
+        JSON.stringify(result)
+      );
+      console.log(`Page ${page}/${totalPages}: ${bytes} bytes written`);
     }
-
-    console.log(`${i} articles intégrés pour import`);
-
-    result.data.users = builder.authors;
-    result.data.posts_authors = builder.postAuthors;
-    result.data.tags = builder.tags;
-    result.data.posts_tags = builder.postsTags;
-
-    return result;
   }
 
-  private migratePostImages(imgDir: string, content: string): string {
-    // Markdown Image : ![Text](name.png Text)
-    const mdImageRegex = /(!\[.*\]\()(.+\.\w+)( .*\)|\))/g;
+  private async exploreAndRegisterMdFiles(
+    limit: number | undefined
+  ): Promise<void> {
+    const mdGlob = new Glob("**/*.md");
+    let total = 0;
 
-    const targetImgDirSlugified = `content/images/${imgDir.toLocaleLowerCase()}`
+    for await (const file of mdGlob.scan(this.directory)) {
+      this.mdFiles.push(file);
+      total++;
+
+      if (total === limit) {
+        break;
+      }
+    }
+
+    console.log(`${total} articles enregistrés pour import`);
+  }
+
+  private buildPagination(perPage: number | undefined): {
+    totalPages: number;
+    itemsPerPage: number;
+  } {
+    const itemsPerPage =
+      perPage && perPage < this.mdFiles.length ? perPage : this.mdFiles.length;
+    const totalPages = Math.ceil(this.mdFiles.length / itemsPerPage);
+
+    return { totalPages, itemsPerPage };
+  }
+
+  private async migrateFeaturedImage(
+    page: number,
+    metadata: MarkdownMetadata
+  ): Promise<void> {
+    const baseStartUrl = "https://nostick.fr/articles";
+
+    if (metadata.image.includes("vignettes")) {
+      const imgPathWithoutBaseStart = metadata.image.replace(
+        `${baseStartUrl}`,
+        ""
+      );
+
+      const imgPath = this.directory + imgPathWithoutBaseStart;
+      const targetPath = `${
+        this.targetDirectory
+      }/${page}${imgPathWithoutBaseStart.toLocaleLowerCase()}`;
+
+      const img = Bun.file(imgPath);
+
+      await Bun.write(targetPath, img);
+    }
+
+    metadata.image = metadata.image
+      .replace(baseStartUrl, this.targetDomain)
+      .toLocaleLowerCase();
+  }
+
+  private async migratePostImages(
+    page: number,
+    imgDir: string,
+    content: string
+  ): Promise<string> {
+    // Markdown Image : ![Text](name.png Text)
+    const mdImageRegex = /(!\[.*\]\()(.+\.\w+)( \".*\"\)|\))/g;
+
+    const imgDirSlugified = imgDir
+      .toLocaleLowerCase()
       .split("/")
       .map((s) => slugify(s, { replacement: "-", lower: true }))
       .join("/");
@@ -69,7 +145,18 @@ class GhostExporter {
         match[0],
         `${match[1]}${
           this.targetDomain
-        }/${targetImgDirSlugified}/${match[2].toLocaleLowerCase()}${match[3]}`
+        }/content/images/${imgDirSlugified}/${match[2].toLocaleLowerCase()}${
+          match[3]
+        }`
+      );
+
+      const img = Bun.file(`${this.directory}/${imgDir}/${match[2]}`);
+
+      await Bun.write(
+        `${
+          this.targetDirectory
+        }/${page}/${imgDirSlugified}/${match[2].toLocaleLowerCase()}`,
+        img
       );
     }
 
