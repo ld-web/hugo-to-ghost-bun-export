@@ -27,13 +27,16 @@ class GhostExporter {
       const { data: metadata, content } = MdParser.parse(filePath);
 
       if (metadata.image) {
-        metadata.image = metadata.image
-          .replace("https://nostick.fr/articles", this.targetDomain)
-          .toLocaleLowerCase();
+        metadata.image =
+          "__GHOST_URL__" +
+          metadata.image
+            .replace("https://nostick.fr/articles", "/content/images")
+            .toLocaleLowerCase();
       }
 
       let newContent = this.migratePostImages(path.dirname(file), content);
       newContent = this.migrateYoutubeShortcodes(newContent);
+      newContent = this.migrateNostickLinks(newContent);
       const mobiledoc = builder.buildMobileDoc(newContent);
       const post = builder.buildPost(metadata, mobiledoc, file);
 
@@ -67,9 +70,11 @@ class GhostExporter {
       // match[3]:  Text)
       content = content.replace(
         match[0],
-        `${match[1]}${
-          this.targetDomain
-        }/${targetImgDirSlugified}/${match[2].toLocaleLowerCase()}${match[3]}`
+        `${
+          match[1]
+        }__GHOST_URL__/${targetImgDirSlugified}/${match[2].toLocaleLowerCase()}${
+          match[3]
+        }`
       );
     }
 
@@ -88,6 +93,10 @@ class GhostExporter {
     }
 
     return content;
+  }
+
+  private migrateNostickLinks(content: string): string {
+    return content.replace("https://nostick.fr", this.targetDomain);
   }
 }
 
