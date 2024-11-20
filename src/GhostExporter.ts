@@ -9,10 +9,14 @@ const mdGlob = new Glob("**/*.md");
 class GhostExporter {
   private directory: string;
   private targetDomain: string;
+  redirects: { "301": Record<string, string>[] };
 
   constructor(directory: string, targetDomain: string) {
     this.directory = directory;
     this.targetDomain = targetDomain;
+    this.redirects = {
+      301: [],
+    };
   }
 
   async createExportObject(): Promise<SiteExport> {
@@ -39,6 +43,10 @@ class GhostExporter {
       newContent = this.migrateNostickLinks(newContent);
       const mobiledoc = builder.buildMobileDoc(newContent);
       const post = builder.buildPost(metadata, mobiledoc, file);
+
+      this.redirects[301].push({
+        [`/${post.slug}`]: `/${post.slug.replaceAll("/", "-")}`,
+      });
 
       result.data.posts.push(post);
       i++;

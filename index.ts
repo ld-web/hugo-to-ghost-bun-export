@@ -2,6 +2,7 @@ import CliParser from "./src/CliParser";
 import GhostExporter from "./src/GhostExporter";
 import ImgExporter from "./src/ImgExporter";
 import fs from "node:fs/promises";
+import YAML from "yaml";
 
 // General
 const DIST_DIR = "dist";
@@ -20,6 +21,12 @@ const bytes = await Bun.write(
   JSON.stringify(result)
 );
 console.log(`${bytes} bytes written`);
+
+const redirectsBytes = await Bun.write(
+  `${DIST_DIR}/redirects.yaml`,
+  YAML.stringify(postsExporter.redirects)
+);
+console.log(`Redirects : ${redirectsBytes} bytes written`);
 
 // Process images
 const imagesExporter = new ImgExporter(directory, DIST_DIR);
